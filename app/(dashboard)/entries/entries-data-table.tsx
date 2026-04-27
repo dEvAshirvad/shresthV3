@@ -32,15 +32,16 @@ export function EntriesDataTable() {
 	const [bulkOpen, setBulkOpen] = useState(false);
 	const [exportOpen, setExportOpen] = useState(false);
 	const [detailEntry, setDetailEntry] = useState<EntryTableRow | null>(null);
+	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
 	const listParams = useMemo(
 		() => ({
-			page: 1,
-			limit: 100,
+			page: pagination.pageIndex + 1,
+			limit: pagination.pageSize,
 			...(templateFilter ? { templateId: templateFilter } : {}),
 			...(periodFilter ? { periodId: periodFilter } : {}),
 		}),
-		[templateFilter, periodFilter],
+		[templateFilter, periodFilter, pagination.pageIndex, pagination.pageSize],
 	);
 
 	const { data: listRes, isPending, isError, error, refetch } =
@@ -169,7 +170,13 @@ export function EntriesDataTable() {
 				columns={columns}
 				data={rows}
 				getRowId={(row) => row._id}
-				defaultPageSize={10}
+				pagination={{
+					pageIndex: pagination.pageIndex,
+					pageSize: pagination.pageSize,
+					pageCount: listRes?.data?.totalPages ?? 1,
+					totalRows: listRes?.data?.total ?? 0,
+				}}
+				onPaginationChange={setPagination}
 				emptyMessage="No KPI entries yet. Save a draft or run a bulk import."
 				getRowClassName={(row) =>
 					detailEntry?._id === row._id ? "bg-muted/40" : undefined
@@ -181,9 +188,15 @@ export function EntriesDataTable() {
 						onBulkImport={() => setBulkOpen(true)}
 						onExport={() => setExportOpen(true)}
 						templateFilter={templateFilter}
-						onTemplateFilterChange={setTemplateFilter}
+						onTemplateFilterChange={(next) => {
+							setTemplateFilter(next);
+							setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+						}}
 						periodFilter={periodFilter}
-						onPeriodFilterChange={setPeriodFilter}
+						onPeriodFilterChange={(next) => {
+							setPeriodFilter(next);
+							setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+						}}
 						templates={templates}
 						periods={periods}
 					/>

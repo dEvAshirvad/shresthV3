@@ -27,17 +27,18 @@ export function PeriodsDataTable() {
 
 	const [statusFilter, setStatusFilter] = useState("all");
 	const [adminModal, setAdminModal] = useState<PeriodAdminModal>(null);
+	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
 	const listParams = useMemo((): ListKpiPeriodsQuery => {
 		return {
-			page: 1,
-			limit: 100,
+			page: pagination.pageIndex + 1,
+			limit: pagination.pageSize,
 			status:
 				statusFilter !== "all" && isStatusFilter(statusFilter)
 					? statusFilter
 					: undefined,
 		};
-	}, [statusFilter]);
+	}, [statusFilter, pagination.pageIndex, pagination.pageSize]);
 
 	const { data, isPending, isError, error, refetch } =
 		useListKpiPeriods(listParams);
@@ -86,13 +87,22 @@ export function PeriodsDataTable() {
 				columns={columns}
 				data={periods}
 				getRowId={(row) => row._id}
-				defaultPageSize={10}
+				pagination={{
+					pageIndex: pagination.pageIndex,
+					pageSize: pagination.pageSize,
+					pageCount: data?.data?.totalPages ?? 1,
+					totalRows: data?.data?.total ?? 0,
+				}}
+				onPaginationChange={setPagination}
 				emptyMessage="No periods yet. Save configuration and start the period system to create the first cycle."
 				renderToolbar={(table) => (
 					<PeriodsToolbar
 						table={table}
 						statusFilter={statusFilter}
-						onStatusFilterChange={setStatusFilter}
+						onStatusFilterChange={(next) => {
+							setStatusFilter(next);
+							setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+						}}
 					/>
 				)}
 			/>

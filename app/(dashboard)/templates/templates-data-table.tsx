@@ -17,6 +17,7 @@ export function TemplatesDataTable() {
 	const [departmentFilter, setDepartmentFilter] = useState("");
 	const [roleInput, setRoleInput] = useState("");
 	const [roleDebounced, setRoleDebounced] = useState("");
+	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
 	useEffect(() => {
 		const t = setTimeout(() => setRoleDebounced(roleInput.trim()), 400);
@@ -25,12 +26,12 @@ export function TemplatesDataTable() {
 
 	const listParams = useMemo((): ListTemplatesQuery => {
 		return {
-			page: 1,
-			limit: 100,
+			page: pagination.pageIndex + 1,
+			limit: pagination.pageSize,
 			departmentId: departmentFilter || undefined,
 			role: roleDebounced || undefined,
 		};
-	}, [departmentFilter, roleDebounced]);
+	}, [departmentFilter, roleDebounced, pagination.pageIndex, pagination.pageSize]);
 
 	const { data: deptRes } = useOrgDepartments({ page: 1, limit: 200 });
 	const departments = deptRes?.data?.docs ?? [];
@@ -85,16 +86,28 @@ export function TemplatesDataTable() {
 			columns={columns}
 			data={rows}
 			getRowId={(row) => row._id}
-			defaultPageSize={10}
+			pagination={{
+				pageIndex: pagination.pageIndex,
+				pageSize: pagination.pageSize,
+				pageCount: data?.data?.totalPages ?? 1,
+				totalRows: data?.data?.total ?? 0,
+			}}
+			onPaginationChange={setPagination}
 			emptyMessage="No templates yet. Create one with full line items on the New template page."
 			renderToolbar={(table) => (
 				<TemplatesToolbar
 					table={table}
 					departments={departments}
 					departmentFilter={departmentFilter}
-					onDepartmentFilterChange={setDepartmentFilter}
+					onDepartmentFilterChange={(next) => {
+						setDepartmentFilter(next);
+						setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+					}}
 					roleFilter={roleInput}
-					onRoleFilterChange={setRoleInput}
+					onRoleFilterChange={(next) => {
+						setRoleInput(next);
+						setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+					}}
 				/>
 			)}
 		/>

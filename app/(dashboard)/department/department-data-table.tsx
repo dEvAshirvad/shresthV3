@@ -17,10 +17,11 @@ export function DepartmentDataTable() {
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editRow, setEditRow] = useState<DepartmentTableRow | null>(null);
 	const [assignRow, setAssignRow] = useState<DepartmentTableRow | null>(null);
+	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
 	const { data, isPending, isError, error, refetch } = useOrgDepartments({
-		page: 1,
-		limit: 100,
+		page: pagination.pageIndex + 1,
+		limit: pagination.pageSize,
 	});
 
 	const rows = useMemo(() => {
@@ -71,7 +72,13 @@ export function DepartmentDataTable() {
 				data={rows}
 				getRowId={(row) => row.id}
 				initialColumnVisibility={{ nodalStatus: false }}
-				defaultPageSize={10}
+				pagination={{
+					pageIndex: pagination.pageIndex,
+					pageSize: pagination.pageSize,
+					pageCount: data?.data?.totalPages ?? 1,
+					totalRows: data?.data?.total ?? 0,
+				}}
+				onPaginationChange={setPagination}
 				emptyMessage="No departments yet. Add one to get started."
 				renderToolbar={(table) => (
 					<DepartmentToolbar

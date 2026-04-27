@@ -21,10 +21,11 @@ export function EmployeeDataTable() {
 	const [bulkImportOpen, setBulkImportOpen] = useState(false);
 	const [sendInvOpen, setSendInvOpen] = useState(false);
 	const [syncOpen, setSyncOpen] = useState(false);
+	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
 	const { data, isPending, isError, error, refetch } = useListEmployees({
-		page: 1,
-		limit: 100,
+		page: pagination.pageIndex + 1,
+		limit: pagination.pageSize,
 	});
 
 	const employees = data?.data?.docs ?? [];
@@ -69,7 +70,13 @@ export function EmployeeDataTable() {
 				columns={columns}
 				data={employees}
 				getRowId={(row) => row._id}
-				defaultPageSize={10}
+				pagination={{
+					pageIndex: pagination.pageIndex,
+					pageSize: pagination.pageSize,
+					pageCount: data?.data?.totalPages ?? 1,
+					totalRows: data?.data?.total ?? 0,
+				}}
+				onPaginationChange={setPagination}
 				emptyMessage="No employees yet. Add one or use bulk import."
 				renderToolbar={(table) => (
 					<EmployeeToolbar

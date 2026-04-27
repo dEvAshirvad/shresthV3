@@ -109,13 +109,14 @@ export function NodalCandidatesDataTable() {
 	const [search, setSearch] = useState("");
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editNodal, setEditNodal] = useState<NodalRecord | null>(null);
+	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
 	const listParams = useMemo(
 		() => ({
-			page: 1,
-			limit: 100,
+			page: pagination.pageIndex + 1,
+			limit: pagination.pageSize,
 			...(search.trim() ? { search: search.trim() } : {}),
 		}),
-		[search],
+		[search, pagination.pageIndex, pagination.pageSize],
 	);
 
 	const { data, isPending, isError, error, refetch } = useListNodals(listParams);
@@ -206,7 +207,10 @@ export function NodalCandidatesDataTable() {
 				<Input
 					placeholder="Search name, email, or phone…"
 					value={search}
-					onChange={(e) => setSearch(e.target.value)}
+					onChange={(e) => {
+						setSearch(e.target.value);
+						setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+					}}
 					className="max-w-sm"
 				/>
 				<div className="flex items-center gap-2">
@@ -223,7 +227,13 @@ export function NodalCandidatesDataTable() {
 				columns={columns}
 				data={docs}
 				getRowId={(row) => row._id}
-				defaultPageSize={25}
+				pagination={{
+					pageIndex: pagination.pageIndex,
+					pageSize: pagination.pageSize,
+					pageCount: data?.data?.totalPages ?? 1,
+					totalRows: data?.data?.total ?? 0,
+				}}
+				onPaginationChange={setPagination}
 				emptyMessage="No nodal candidates yet. Import a spreadsheet or add rows via the API."
 			/>
 			<NodalFormDialog

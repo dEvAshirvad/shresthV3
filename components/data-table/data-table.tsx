@@ -12,8 +12,10 @@ import {
 	useReactTable,
 	type ColumnDef,
 	type ColumnFiltersState,
+	type PaginationState,
 	type SortingState,
 	type Table as TanstackTable,
+	type Updater,
 	type VisibilityState,
 } from "@tanstack/react-table";
 
@@ -43,6 +45,14 @@ type DataTableProps<TData, TValue> = {
 	/** Extra classes per row (e.g. highlight selected detail row). */
 	getRowClassName?: (row: TData) => string | undefined;
 	showPagination?: boolean;
+	/** Controlled server pagination (page-by-page API fetching). */
+	pagination?: {
+		pageIndex: number;
+		pageSize: number;
+		pageCount: number;
+		totalRows?: number;
+	};
+	onPaginationChange?: (next: PaginationState) => void;
 };
 
 export function DataTable<TData, TValue>({
@@ -55,6 +65,8 @@ export function DataTable<TData, TValue>({
 	emptyMessage = "No results.",
 	getRowClassName,
 	showPagination = true,
+	pagination,
+	onPaginationChange,
 }: DataTableProps<TData, TValue>) {
 	const [rowSelection, setRowSelection] = React.useState({});
 	const [columnVisibility, setColumnVisibility] =
@@ -63,6 +75,28 @@ export function DataTable<TData, TValue>({
 		[],
 	);
 	const [sorting, setSorting] = React.useState<SortingState>([]);
+	const [internalPagination, setInternalPagination] =
+		React.useState<PaginationState>({
+			pageIndex: 0,
+			pageSize: defaultPageSize,
+		});
+	const isManualPagination = Boolean(pagination && onPaginationChange);
+	const activePagination = isManualPagination
+		? { pageIndex: pagination.pageIndex, pageSize: pagination.pageSize }
+		: internalPagination;
+
+	const handlePaginationChange = React.useCallback(
+		(updater: Updater<PaginationState>) => {
+			const next =
+				typeof updater === "function" ? updater(activePagination) : updater;
+			if (isManualPagination) {
+				onPaginationChange?.(next);
+				return;
+			}
+			setInternalPagination(next);
+		},
+		[activePagination, isManualPagination, onPaginationChange],
+	);
 
 	const table = useReactTable({
 		data,
@@ -72,12 +106,9 @@ export function DataTable<TData, TValue>({
 			columnVisibility,
 			rowSelection,
 			columnFilters,
+			pagination: activePagination,
 		},
-		initialState: {
-			pagination: {
-				pageSize: defaultPageSize,
-			},
-		},
+		onPaginationChange: handlePaginationChange,
 		enableRowSelection: true,
 		onRowSelectionChange: setRowSelection,
 		onSortingChange: setSorting,
@@ -90,6 +121,11 @@ export function DataTable<TData, TValue>({
 		getFacetedRowModel: getFacetedRowModel(),
 		getFacetedUniqueValues: getFacetedUniqueValues(),
 		getRowId,
+		manualPagination: isManualPagination,
+		pageCount: isManualPagination ? pagination?.pageCount ?? 1 : undefined,
+		meta: {
+			totalRowCount: isManualPagination ? pagination?.totalRows : undefined,
+		},
 	});
 
 	return (

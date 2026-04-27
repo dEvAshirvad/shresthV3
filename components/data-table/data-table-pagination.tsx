@@ -24,14 +24,16 @@ type DataTablePaginationProps<TData> = {
 export function DataTablePagination<TData>({
 	table,
 }: DataTablePaginationProps<TData>) {
+	const totalRowCount =
+		(table.options.meta as { totalRowCount?: number } | undefined)
+			?.totalRowCount ?? table.getFilteredRowModel().rows.length;
+
 	return (
 		<div className="flex flex-col gap-3 px-2 sm:flex-row sm:items-center sm:justify-between">
 			<div className="flex-1 text-sm text-muted-foreground">
 				{table.getFilteredSelectedRowModel().rows.length} of{" "}
-				{table.getFilteredRowModel().rows.length} row(s) selected.{" "}
-				<span className="font-medium">
-					{table.getFilteredRowModel().rows.length} total
-				</span>
+				{totalRowCount} row(s) selected.{" "}
+				<span className="font-medium">{totalRowCount} total</span>
 			</div>
 
 			<div className="flex flex-wrap items-center gap-4 sm:gap-6 lg:gap-8">
