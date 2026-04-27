@@ -82,7 +82,7 @@ export function DataTable<TData, TValue>({
 		});
 	const isManualPagination = Boolean(pagination && onPaginationChange);
 	const activePagination = isManualPagination
-		? { pageIndex: pagination.pageIndex, pageSize: pagination.pageSize }
+		? { pageIndex: pagination?.pageIndex ?? 0, pageSize: pagination?.pageSize ?? defaultPageSize }
 		: internalPagination;
 
 	const handlePaginationChange = React.useCallback(
