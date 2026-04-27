@@ -14,6 +14,8 @@ type EmployeeToolbarProps = {
 	onOpenBulkImport: () => void;
 	onOpenSendInvitations: () => void;
 	onOpenSyncMembers: () => void;
+	searchValue: string;
+	onSearchChange: (value: string) => void;
 };
 
 export function EmployeeToolbar({
@@ -22,25 +24,25 @@ export function EmployeeToolbar({
 	onOpenBulkImport,
 	onOpenSendInvitations,
 	onOpenSyncMembers,
+	searchValue,
+	onSearchChange,
 }: EmployeeToolbarProps) {
-	const isFiltered = table.getState().columnFilters.length > 0;
+	const isFiltered = Boolean(searchValue.trim());
 
 	return (
 		<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<div className="flex flex-1 flex-wrap items-center gap-2">
 				<Input
-					placeholder="Filter by name..."
-					value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-					onChange={(event) =>
-						table.getColumn("name")?.setFilterValue(event.target.value)
-					}
+					placeholder="Search employees..."
+					value={searchValue}
+					onChange={(event) => onSearchChange(event.target.value)}
 					className="w-full min-w-32 sm:max-w-sm"
 				/>
 				{isFiltered && (
 					<Button
 						variant="ghost"
 						size="sm"
-						onClick={() => table.resetColumnFilters()}
+						onClick={() => onSearchChange("")}
 						className="h-8 px-2 lg:px-3">
 						Reset
 						<X className="size-4" />

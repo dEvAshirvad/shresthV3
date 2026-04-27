@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DataTable } from "@/components/data-table";
@@ -22,10 +22,18 @@ export function EmployeeDataTable() {
 	const [sendInvOpen, setSendInvOpen] = useState(false);
 	const [syncOpen, setSyncOpen] = useState(false);
 	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+	const [searchInput, setSearchInput] = useState("");
+	const [searchDebounced, setSearchDebounced] = useState("");
+
+	useEffect(() => {
+		const timer = setTimeout(() => setSearchDebounced(searchInput.trim()), 400);
+		return () => clearTimeout(timer);
+	}, [searchInput]);
 
 	const { data, isPending, isError, error, refetch } = useListEmployees({
 		page: pagination.pageIndex + 1,
 		limit: pagination.pageSize,
+		...(searchDebounced ? { search: searchDebounced } : {}),
 	});
 
 	const employees = data?.data?.docs ?? [];
@@ -85,6 +93,11 @@ export function EmployeeDataTable() {
 						onOpenBulkImport={() => setBulkImportOpen(true)}
 						onOpenSendInvitations={() => setSendInvOpen(true)}
 						onOpenSyncMembers={() => setSyncOpen(true)}
+						searchValue={searchInput}
+						onSearchChange={(next) => {
+							setSearchInput(next);
+							setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+						}}
 					/>
 				)}
 			/>

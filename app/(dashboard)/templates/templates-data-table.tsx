@@ -14,10 +14,17 @@ import { mapTemplateToRow } from "./map-template-row";
 import { TemplatesToolbar } from "./templates-toolbar";
 
 export function TemplatesDataTable() {
+	const [nameInput, setNameInput] = useState("");
+	const [nameDebounced, setNameDebounced] = useState("");
 	const [departmentFilter, setDepartmentFilter] = useState("");
 	const [roleInput, setRoleInput] = useState("");
 	const [roleDebounced, setRoleDebounced] = useState("");
 	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+
+	useEffect(() => {
+		const t = setTimeout(() => setNameDebounced(nameInput.trim()), 400);
+		return () => clearTimeout(t);
+	}, [nameInput]);
 
 	useEffect(() => {
 		const t = setTimeout(() => setRoleDebounced(roleInput.trim()), 400);
@@ -28,10 +35,17 @@ export function TemplatesDataTable() {
 		return {
 			page: pagination.pageIndex + 1,
 			limit: pagination.pageSize,
+			search: nameDebounced || undefined,
 			departmentId: departmentFilter || undefined,
 			role: roleDebounced || undefined,
 		};
-	}, [departmentFilter, roleDebounced, pagination.pageIndex, pagination.pageSize]);
+	}, [
+		nameDebounced,
+		departmentFilter,
+		roleDebounced,
+		pagination.pageIndex,
+		pagination.pageSize,
+	]);
 
 	const { data: deptRes } = useOrgDepartments({ page: 1, limit: 200 });
 	const departments = deptRes?.data?.docs ?? [];
@@ -98,6 +112,11 @@ export function TemplatesDataTable() {
 				<TemplatesToolbar
 					table={table}
 					departments={departments}
+					nameFilter={nameInput}
+					onNameFilterChange={(next) => {
+						setNameInput(next);
+						setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+					}}
 					departmentFilter={departmentFilter}
 					onDepartmentFilterChange={(next) => {
 						setDepartmentFilter(next);

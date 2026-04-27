@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Pencil, Trash2 } from "lucide-react";
@@ -106,17 +106,24 @@ function hasUserId(n: NodalRecord): boolean {
 }
 
 export function NodalCandidatesDataTable() {
-	const [search, setSearch] = useState("");
+	const [searchInput, setSearchInput] = useState("");
+	const [searchDebounced, setSearchDebounced] = useState("");
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editNodal, setEditNodal] = useState<NodalRecord | null>(null);
 	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
+
+	useEffect(() => {
+		const timer = setTimeout(() => setSearchDebounced(searchInput.trim()), 400);
+		return () => clearTimeout(timer);
+	}, [searchInput]);
+
 	const listParams = useMemo(
 		() => ({
 			page: pagination.pageIndex + 1,
 			limit: pagination.pageSize,
-			...(search.trim() ? { search: search.trim() } : {}),
+			...(searchDebounced ? { search: searchDebounced } : {}),
 		}),
-		[search, pagination.pageIndex, pagination.pageSize],
+		[searchDebounced, pagination.pageIndex, pagination.pageSize],
 	);
 
 	const { data, isPending, isError, error, refetch } = useListNodals(listParams);
@@ -206,9 +213,9 @@ export function NodalCandidatesDataTable() {
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 				<Input
 					placeholder="Search name, email, or phone…"
-					value={search}
+					value={searchInput}
 					onChange={(e) => {
-						setSearch(e.target.value);
+						setSearchInput(e.target.value);
 						setPagination((prev) => ({ ...prev, pageIndex: 0 }));
 					}}
 					className="max-w-sm"

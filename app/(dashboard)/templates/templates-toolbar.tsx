@@ -22,6 +22,8 @@ import type { TemplateTableRow } from "./map-template-row";
 type TemplatesToolbarProps = {
 	table: Table<TemplateTableRow>;
 	departments: Department[];
+	nameFilter: string;
+	onNameFilterChange: (value: string) => void;
 	departmentFilter: string;
 	onDepartmentFilterChange: (value: string) => void;
 	roleFilter: string;
@@ -31,13 +33,15 @@ type TemplatesToolbarProps = {
 export function TemplatesToolbar({
 	table,
 	departments,
+	nameFilter,
+	onNameFilterChange,
 	departmentFilter,
 	onDepartmentFilterChange,
 	roleFilter,
 	onRoleFilterChange,
 }: TemplatesToolbarProps) {
 	const isFiltered =
-		table.getState().columnFilters.length > 0 ||
+		Boolean(nameFilter.trim()) ||
 		Boolean(departmentFilter) ||
 		Boolean(roleFilter.trim());
 
@@ -47,10 +51,10 @@ export function TemplatesToolbar({
 				<div className="grid min-w-0 flex-1 gap-2 sm:max-w-xs">
 					<Label className="text-muted-foreground text-xs">Name</Label>
 					<Input
-						placeholder="Filter by name..."
-						value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+						placeholder="Search by name..."
+						value={nameFilter}
 						onChange={(event) => {
-							table.getColumn("name")?.setFilterValue(event.target.value);
+							onNameFilterChange(event.target.value);
 						}}
 						className="w-full min-w-32"
 					/>
@@ -95,7 +99,7 @@ export function TemplatesToolbar({
 						size="sm"
 						className="h-8 self-end px-2 lg:px-3"
 						onClick={() => {
-							table.resetColumnFilters();
+							onNameFilterChange("");
 							onDepartmentFilterChange("");
 							onRoleFilterChange("");
 						}}>

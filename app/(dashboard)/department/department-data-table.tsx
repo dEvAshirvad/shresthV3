@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DataTable } from "@/components/data-table";
@@ -18,10 +18,18 @@ export function DepartmentDataTable() {
 	const [editRow, setEditRow] = useState<DepartmentTableRow | null>(null);
 	const [assignRow, setAssignRow] = useState<DepartmentTableRow | null>(null);
 	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+	const [searchInput, setSearchInput] = useState("");
+	const [searchDebounced, setSearchDebounced] = useState("");
+
+	useEffect(() => {
+		const timer = setTimeout(() => setSearchDebounced(searchInput.trim()), 400);
+		return () => clearTimeout(timer);
+	}, [searchInput]);
 
 	const { data, isPending, isError, error, refetch } = useOrgDepartments({
 		page: pagination.pageIndex + 1,
 		limit: pagination.pageSize,
+		...(searchDebounced ? { search: searchDebounced } : {}),
 	});
 
 	const rows = useMemo(() => {
@@ -84,6 +92,11 @@ export function DepartmentDataTable() {
 					<DepartmentToolbar
 						table={table}
 						onAdd={() => setCreateOpen(true)}
+						searchValue={searchInput}
+						onSearchChange={(next) => {
+							setSearchInput(next);
+							setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+						}}
 					/>
 				)}
 			/>

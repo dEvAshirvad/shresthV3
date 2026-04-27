@@ -15,20 +15,26 @@ import type { DepartmentTableRow } from "./columns";
 type DepartmentToolbarProps = {
 	table: Table<DepartmentTableRow>;
 	onAdd: () => void;
+	searchValue: string;
+	onSearchChange: (value: string) => void;
 };
 
-export function DepartmentToolbar({ table, onAdd }: DepartmentToolbarProps) {
-	const isFiltered = table.getState().columnFilters.length > 0;
+export function DepartmentToolbar({
+	table,
+	onAdd,
+	searchValue,
+	onSearchChange,
+}: DepartmentToolbarProps) {
+	const isFiltered =
+		table.getState().columnFilters.length > 0 || Boolean(searchValue.trim());
 
 	return (
 		<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<div className="flex flex-1 flex-wrap items-center gap-2">
 				<Input
-					placeholder="Filter departments..."
-					value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-					onChange={(event) =>
-						table.getColumn("name")?.setFilterValue(event.target.value)
-					}
+					placeholder="Search departments..."
+					value={searchValue}
+					onChange={(event) => onSearchChange(event.target.value)}
 					className="w-full min-w-32 sm:max-w-sm"
 				/>
 				{table.getColumn("nodalStatus") && (
@@ -42,7 +48,10 @@ export function DepartmentToolbar({ table, onAdd }: DepartmentToolbarProps) {
 					<Button
 						variant="ghost"
 						size="sm"
-						onClick={() => table.resetColumnFilters()}
+						onClick={() => {
+							table.resetColumnFilters();
+							onSearchChange("");
+						}}
 						className="h-8 px-2 lg:px-3">
 						Reset
 						<X className="size-4" />
