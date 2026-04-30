@@ -138,7 +138,10 @@ export function getEntryColumns(
 		},
 		{
 			id: "marks",
-			header: "Marks",
+			accessorFn: (row) => row.obtainedMarks ?? Number.NEGATIVE_INFINITY,
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Marks" />
+			),
 			cell: ({ row }) => {
 				const o = row.original.obtainedMarks;
 				const t = row.original.totalMarks;
