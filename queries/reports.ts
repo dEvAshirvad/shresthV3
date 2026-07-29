@@ -232,13 +232,34 @@ export async function getReportRanking(
 }
 
 export async function downloadDepartmentReportZip(periodId: string): Promise<Blob> {
-	const { data } = await api.get<Blob>(
-		`${BASE}/${periodId}/department-report-zip`,
-		{
-			responseType: "blob",
-		},
-	);
-	return data;
+	const res = await api.get<Blob>(`${BASE}/${periodId}/department-report-zip`, {
+		responseType: "blob",
+		validateStatus: () => true,
+	});
+
+	const contentType = String(res.headers["content-type"] || "");
+	if (res.status >= 400 || contentType.includes("application/json")) {
+		let message = `Download failed (${res.status})`;
+		try {
+			const text = await (res.data as Blob).text();
+			const parsed = JSON.parse(text) as {
+				message?: string;
+				title?: string;
+				data?: { message?: string; title?: string };
+			};
+			message =
+				parsed?.data?.message ??
+				parsed?.data?.title ??
+				parsed?.message ??
+				parsed?.title ??
+				message;
+		} catch {
+			// keep default message
+		}
+		throw new Error(message);
+	}
+
+	return res.data;
 }
 
 export type SendWhatsAppPerformanceResult =
