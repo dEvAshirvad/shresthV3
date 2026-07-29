@@ -7,6 +7,7 @@ import { DataTable } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDecimal2 } from "@/lib/number-format";
 import { useEntry } from "@/queries/entries";
 
 import { getEntryLineItemColumns } from "./entry-line-items-columns";
@@ -65,7 +66,8 @@ export function EntryDetailPanel({
 							</Badge>
 							<span aria-hidden>·</span>
 							<span className="tabular-nums">
-								{entry.obtainedMarks ?? "—"} / {entry.totalMarks ?? "—"} marks
+								{formatDecimal2(entry.obtainedMarks)} /{" "}
+								{formatDecimal2(entry.totalMarks)} marks
 							</span>
 							{entry.roleSnapshot ? (
 								<>

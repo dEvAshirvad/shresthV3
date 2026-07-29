@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import {
 	Card,
 	CardContent,
@@ -8,7 +6,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { NotAssignedActions } from "./not-assigned-actions";
 
 export default function NotAssignedPage() {
 	return (
@@ -26,12 +24,7 @@ export default function NotAssignedPage() {
 					nodal member to at least one department.
 				</CardContent>
 				<CardFooter className="flex flex-wrap gap-2">
-					<Button asChild>
-						<Link href="/onboarding">Back to onboarding</Link>
-					</Button>
-					<Button variant="outline" asChild>
-						<Link href="/dashboard">Retry access</Link>
-					</Button>
+					<NotAssignedActions />
 				</CardFooter>
 			</Card>
 		</div>

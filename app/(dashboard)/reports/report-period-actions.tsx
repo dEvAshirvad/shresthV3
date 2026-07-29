@@ -29,9 +29,6 @@ import {
 	reportKeys,
 	useDownloadDepartmentReportZip,
 	useSendWhatsAppPerformance,
-	type ListWhatsAppSendsQuery,
-	type WhatsAppSendStatus,
-	useListWhatsAppSends,
 } from "@/queries/reports";
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -110,25 +107,6 @@ export function ReportPeriodActions({ periodId }: Props) {
 
 	const { data: deptRes } = useOrgDepartments({ page: 1, limit: 200 });
 	const departments = deptRes?.data?.docs ?? [];
-
-	const [auditPage, setAuditPage] = useState(1);
-	const [auditStatus, setAuditStatus] = useState<WhatsAppSendStatus | "all">(
-		"all",
-	);
-	const auditParams = useMemo((): ListWhatsAppSendsQuery => {
-		const p: ListWhatsAppSendsQuery = { page: auditPage, limit: 20 };
-		if (auditStatus !== "all") p.status = auditStatus;
-		return p;
-	}, [auditPage, auditStatus]);
-
-	const { data: sendsRes, isFetching: sendsLoading } = useListWhatsAppSends(
-		periodId,
-		auditParams,
-	);
-	const sends = sendsRes?.data?.docs ?? [];
-	const sendsTotal = sendsRes?.data?.total ?? 0;
-	const sendsHasNext = sendsRes?.data?.hasNextPage ?? false;
-	const sendsHasPrev = sendsRes?.data?.hasPreviousPage ?? false;
 
 	const handleDownloadZip = async () => {
 		try {
@@ -276,71 +254,6 @@ export function ReportPeriodActions({ periodId }: Props) {
 				</DialogContent>
 			</Dialog>
 
-			<div className="space-y-2">
-				<div className="flex flex-wrap items-center gap-2">
-					<Label className="text-sm font-medium">WhatsApp send audit</Label>
-					<Select
-						value={auditStatus}
-						onValueChange={(v) => {
-							setAuditStatus(v as WhatsAppSendStatus | "all");
-							setAuditPage(1);
-						}}>
-						<SelectTrigger className="h-8 w-[140px]">
-							<SelectValue placeholder="Status" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">All statuses</SelectItem>
-							<SelectItem value="pending">pending</SelectItem>
-							<SelectItem value="sent">sent</SelectItem>
-							<SelectItem value="failed">failed</SelectItem>
-							<SelectItem value="skipped">skipped</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
-				{sendsLoading ? (
-					<p className="text-muted-foreground text-sm">Loading audit…</p>
-				) : sends.length === 0 ? (
-					<p className="text-muted-foreground text-sm">No send rows for this period.</p>
-				) : (
-					<ul className="max-h-48 space-y-1 overflow-auto rounded-md border p-2 text-sm">
-						{sends.map((r) => (
-							<li key={r._id} className="flex flex-wrap gap-x-2 gap-y-0.5">
-								<span className="font-medium">{r.status}</span>
-								{r.phoneMasked ? (
-									<span className="text-muted-foreground">{r.phoneMasked}</span>
-								) : null}
-								{r.performerBucket ? (
-									<span className="text-muted-foreground">{r.performerBucket}</span>
-								) : null}
-								{r.dryRun ? <span className="text-muted-foreground">dryRun</span> : null}
-							</li>
-						))}
-					</ul>
-				)}
-				{sendsTotal > 0 ? (
-					<div className="flex items-center gap-2">
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							disabled={!sendsHasPrev}
-							onClick={() => setAuditPage((p) => Math.max(1, p - 1))}>
-							Previous
-						</Button>
-						<span className="text-muted-foreground text-xs">
-							Page {auditPage} · {sendsTotal} total
-						</span>
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							disabled={!sendsHasNext}
-							onClick={() => setAuditPage((p) => p + 1)}>
-							Next
-						</Button>
-					</div>
-				) : null}
-			</div>
 		</section>
 	);
 }

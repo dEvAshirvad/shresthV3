@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getApiErrorMessage } from "@/lib/api-error";
+import { downloadEmployeeCredentialsCsv } from "@/lib/employee-credentials-csv";
 import { useOrgDepartments } from "@/hooks/use-org-departments";
 import {
 	useCreateEmployee,
@@ -126,14 +127,25 @@ export function EmployeeFormDialog({
 		try {
 			if (mode === "edit" && !initial) return;
 			if (mode === "create") {
-				await createMut.mutateAsync({
+				const res = await createMut.mutateAsync({
 					name: form.name.trim(),
 					phone: form.phone.trim(),
 					email: form.email.trim() || undefined,
 					department: form.departmentId,
 					departmentRole: form.departmentRole.trim(),
 				});
-				toast.success("Employee created");
+				const creds = res.data.credentials;
+				if (creds) {
+					downloadEmployeeCredentialsCsv(
+						[creds],
+						`employee-${creds.empId}-credentials.csv`,
+					);
+					toast.success(
+						"Employee created — credentials downloaded (shown once)",
+					);
+				} else {
+					toast.success("Employee created");
+				}
 			} else if (initial) {
 				await updateMut.mutateAsync({
 					id: initial._id,
@@ -165,7 +177,9 @@ export function EmployeeFormDialog({
 						</DialogTitle>
 						{mode === "create" ? (
 							<DialogDescription>
-								Phone must be unique. Role is used for KPI template matching.
+								Creates empId + password for staff login. Phone must be unique.
+								Role is used for KPI template matching. Credentials download once
+								on create.
 							</DialogDescription>
 						) : null}
 					</DialogHeader>

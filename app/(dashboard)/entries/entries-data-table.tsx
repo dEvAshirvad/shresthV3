@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DataTable } from "@/components/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getApiErrorMessage } from "@/lib/api-error";
-import { useListEmployees } from "@/queries/employee";
+import { useListAllEmployees } from "@/queries/employee";
 import {
 	useDeleteDraftEntry,
 	useListEntries,
@@ -50,8 +50,7 @@ export function EntriesDataTable() {
 	const { data: tplRes } = useListTemplates({ page: 1, limit: 200 });
 	const templates = tplRes?.data?.docs ?? [];
 
-	const { data: empRes } = useListEmployees({ page: 1, limit: 500 });
-	const employees = empRes?.data?.docs ?? [];
+	const { data: employees = [] } = useListAllEmployees();
 
 	const { data: periodRes } = useListKpiPeriods({ page: 1, limit: 100 });
 	const periods = periodRes?.data?.docs ?? [];

@@ -6,6 +6,7 @@ import { Download, Eye, Medal } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatDecimal2, formatPercent2 } from "@/lib/number-format";
 
 import type { ReportRankingTableRow } from "./map-report-ranking-row";
 
@@ -109,10 +110,10 @@ export function getReportRankingColumns(
 				return (
 					<div className="flex flex-col gap-0.5 tabular-nums">
 						<span className="font-semibold text-emerald-600 dark:text-emerald-400">
-							{scorePercent.toFixed(1)}%
+							{formatPercent2(scorePercent)}
 						</span>
 						<span className="text-muted-foreground text-xs">
-							{obtainedMarks} / {totalMarks}
+							{formatDecimal2(obtainedMarks)} / {formatDecimal2(totalMarks)}
 						</span>
 					</div>
 				);

@@ -19,6 +19,7 @@ export type Employee = {
 	name: string;
 	phone: string;
 	email?: string | null;
+	empId?: string | null;
 	department: string | { _id: string; name?: string; slug?: string } | null;
 	departmentRole: string;
 	userId?: string | unknown | null;
@@ -26,6 +27,15 @@ export type Employee = {
 	invitationId?: string | unknown | null;
 	createdAt?: string;
 	updatedAt?: string;
+};
+
+export type EmployeeCredential = {
+	employeeId?: string;
+	name: string;
+	phone: string;
+	email?: string;
+	empId: string;
+	password: string;
 };
 
 export type ListEmployeesQuery = {
@@ -52,7 +62,10 @@ export type ImportTemplateFormat = "csv" | "xlsx";
 export type EmployeeImportData = {
 	insertedCount: number;
 	updatedCount: number;
+	skippedProvisioned?: number;
 	totalProcessed: number;
+	credentials?: EmployeeCredential[];
+	provisionErrors?: Array<{ phone?: string; message: string }>;
 	message: string;
 };
 
@@ -60,10 +73,38 @@ export type EmployeeImportResponse = ApiSuccessEnvelope<EmployeeImportData>;
 
 export type EmployeeSingleData = {
 	employee: Employee;
+	credentials?: EmployeeCredential;
 	message: string;
 };
 
 export type EmployeeSingleResponse = ApiSuccessEnvelope<EmployeeSingleData>;
+
+export type ProvisionEmployeeCredentialsData = {
+	credentials: EmployeeCredential[];
+	errors: Array<{ employeeId: string; phone?: string; message: string }>;
+	message: string;
+};
+
+export type ProvisionEmployeeCredentialsResponse =
+	ApiSuccessEnvelope<ProvisionEmployeeCredentialsData>;
+
+export type DownloadAllEmployeeCredentialsData = {
+	credentials: EmployeeCredential[];
+	errors: Array<{ employeeId: string; phone?: string; message: string }>;
+	total: number;
+	message: string;
+};
+
+export type DownloadAllEmployeeCredentialsResponse =
+	ApiSuccessEnvelope<DownloadAllEmployeeCredentialsData>;
+
+export type ResetEmployeePasswordData = {
+	credentials: EmployeeCredential;
+	message: string;
+};
+
+export type ResetEmployeePasswordResponse =
+	ApiSuccessEnvelope<ResetEmployeePasswordData>;
 
 export type EmployeeCreateBody = {
 	name: string;
@@ -146,6 +187,27 @@ export async function listEmployees(
 ): Promise<ListEmployeesResponse> {
 	const { data } = await api.get<ListEmployeesResponse>(BASE, { params });
 	return data;
+}
+
+/**
+ * Fetches all employee pages for the active org by walking paginated results.
+ * Uses a sane per-page size and stops when `hasNextPage` is false.
+ */
+export async function listAllEmployees(
+	params: Omit<ListEmployeesQuery, "page" | "limit"> = {},
+): Promise<Employee[]> {
+	const limit = 200;
+	let page = 1;
+	const all: Employee[] = [];
+
+	while (true) {
+		const res = await listEmployees({ ...params, page, limit });
+		all.push(...(res.data?.docs ?? []));
+		if (!res.data?.hasNextPage) break;
+		page += 1;
+	}
+
+	return all;
 }
 
 export async function downloadEmployeeImportTemplate(
@@ -265,6 +327,37 @@ export async function sendInvitationToRestEmployees(
 	return data;
 }
 
+export async function provisionEmployeeCredentials(body?: {
+	departmentId?: string;
+}): Promise<ProvisionEmployeeCredentialsResponse> {
+	const { data } = await api.post<ProvisionEmployeeCredentialsResponse>(
+		`${BASE}/provision-credentials`,
+		body ?? {},
+	);
+	return data;
+}
+
+export async function downloadAllEmployeeCredentials(params?: {
+	departmentId?: string;
+}): Promise<DownloadAllEmployeeCredentialsResponse> {
+	const { data } = await api.post<DownloadAllEmployeeCredentialsResponse>(
+		`${BASE}/download-all-credentials`,
+		{},
+		{ params: params?.departmentId ? { departmentId: params.departmentId } : {} },
+	);
+	return data;
+}
+
+export async function resetEmployeePassword(
+	id: string,
+): Promise<ResetEmployeePasswordResponse> {
+	const { data } = await api.post<ResetEmployeePasswordResponse>(
+		`${BASE}/${id}/reset-password`,
+		{},
+	);
+	return data;
+}
+
 // ──────────────────────────────────────────────
 // React Query hooks
 // ──────────────────────────────────────────────
@@ -273,6 +366,15 @@ export function useListEmployees(params: ListEmployeesQuery = {}) {
 	return useQuery({
 		queryKey: employeeKeys.list(params),
 		queryFn: () => listEmployees(params),
+	});
+}
+
+export function useListAllEmployees(
+	params: Omit<ListEmployeesQuery, "page" | "limit"> = {},
+) {
+	return useQuery({
+		queryKey: [...employeeKeys.all, "list-all", params] as const,
+		queryFn: () => listAllEmployees(params),
 	});
 }
 
@@ -405,6 +507,38 @@ export function useSendInvitationToRestEmployees() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: sendInvitationToRestEmployees,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+		},
+	});
+}
+
+export function useProvisionEmployeeCredentials() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (body?: { departmentId?: string }) =>
+			provisionEmployeeCredentials(body),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+		},
+	});
+}
+
+export function useDownloadAllEmployeeCredentials() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (params?: { departmentId?: string }) =>
+			downloadAllEmployeeCredentials(params),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+		},
+	});
+}
+
+export function useResetEmployeePassword() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: resetEmployeePassword,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: employeeKeys.all });
 		},

@@ -3,6 +3,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
 
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { formatDecimal2 } from "@/lib/number-format";
 
 export type EntryLineItemRow = {
 	id: string;
@@ -43,7 +44,7 @@ export function getEntryLineItemColumns(): ColumnDef<EntryLineItemRow>[] {
 				<DataTableColumnHeader column={column} title="Max" />
 			),
 			cell: ({ row }) => (
-				<span className="tabular-nums">{row.original.maxMarks}</span>
+				<span className="tabular-nums">{formatDecimal2(row.original.maxMarks)}</span>
 			),
 		},
 		{
@@ -62,7 +63,7 @@ export function getEntryLineItemColumns(): ColumnDef<EntryLineItemRow>[] {
 			),
 			cell: ({ row }) => (
 				<span className="font-medium tabular-nums text-emerald-700 dark:text-emerald-400">
-					{row.original.awardedMarks}
+					{formatDecimal2(row.original.awardedMarks)}
 				</span>
 			),
 		},

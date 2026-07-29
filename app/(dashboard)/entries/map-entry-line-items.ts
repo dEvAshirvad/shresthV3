@@ -1,4 +1,5 @@
 import type { KpiEntryItem } from "@/queries/entries";
+import { formatDecimal2 } from "@/lib/number-format";
 
 import type { EntryLineItemRow } from "./entry-line-items-columns";
 
@@ -21,7 +22,7 @@ function valueLabel(item: KpiEntryItem): string {
 		item.inputValueNumber !== null &&
 		Number.isFinite(Number(item.inputValueNumber))
 	) {
-		return String(item.inputValueNumber);
+		return formatDecimal2(Number(item.inputValueNumber));
 	}
 	return "—";
 }

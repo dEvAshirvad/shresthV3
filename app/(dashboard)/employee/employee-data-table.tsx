@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DataTable } from "@/components/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useListEmployees } from "@/queries/employee";
-import type { Employee } from "@/queries/employee";
+import { getApiErrorMessage } from "@/lib/api-error";
+import { downloadEmployeeCredentialsCsv } from "@/lib/employee-credentials-csv";
+import {
+	useDownloadAllEmployeeCredentials,
+	useListEmployees,
+	useProvisionEmployeeCredentials,
+	type Employee,
+} from "@/queries/employee";
 
 import { getEmployeeColumns } from "./columns";
 import { EmployeeBulkImportDialog } from "./employee-bulk-import-dialog";
@@ -24,6 +31,9 @@ export function EmployeeDataTable() {
 	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 	const [searchInput, setSearchInput] = useState("");
 	const [searchDebounced, setSearchDebounced] = useState("");
+
+	const provisionMut = useProvisionEmployeeCredentials();
+	const downloadAllMut = useDownloadAllEmployeeCredentials();
 
 	useEffect(() => {
 		const timer = setTimeout(() => setSearchDebounced(searchInput.trim()), 400);
@@ -45,6 +55,47 @@ export function EmployeeDataTable() {
 			}),
 		[],
 	);
+
+	const credentialsBusy =
+		provisionMut.isPending || downloadAllMut.isPending;
+
+	const handleProvision = () => {
+		provisionMut.mutate(undefined, {
+			onSuccess: (res) => {
+				const d = res.data;
+				const creds = d.credentials ?? [];
+				const errCount = d.errors?.length ?? 0;
+				toast.success(d.message ?? "Provisioning completed", {
+					description: `${creds.length} credential(s)${errCount ? ` · ${errCount} errors` : ""}`,
+				});
+				if (creds.length) {
+					downloadEmployeeCredentialsCsv(creds);
+					toast.message("Credentials CSV downloaded — save it securely.");
+				}
+			},
+			onError: (e) => toast.error(getApiErrorMessage(e)),
+		});
+	};
+
+	const handleDownloadAll = () => {
+		downloadAllMut.mutate(undefined, {
+			onSuccess: (res) => {
+				const d = res.data;
+				const creds = d.credentials ?? [];
+				const errCount = d.errors?.length ?? 0;
+				toast.success(d.message ?? "Credentials ready", {
+					description: `${creds.length}/${d.total ?? creds.length} credential(s)${errCount ? ` · ${errCount} errors` : ""}`,
+				});
+				if (creds.length) {
+					downloadEmployeeCredentialsCsv(
+						creds,
+						`employee-credentials-all-${new Date().toISOString().slice(0, 10)}.csv`,
+					);
+				}
+			},
+			onError: (e) => toast.error(getApiErrorMessage(e)),
+		});
+	};
 
 	if (isPending) {
 		return (
@@ -91,8 +142,11 @@ export function EmployeeDataTable() {
 						table={table}
 						onAdd={() => setCreateOpen(true)}
 						onOpenBulkImport={() => setBulkImportOpen(true)}
+						onDownloadAllCredentials={handleDownloadAll}
+						onProvisionMissing={handleProvision}
 						onOpenSendInvitations={() => setSendInvOpen(true)}
 						onOpenSyncMembers={() => setSyncOpen(true)}
+						credentialsBusy={credentialsBusy}
 						searchValue={searchInput}
 						onSearchChange={(next) => {
 							setSearchInput(next);

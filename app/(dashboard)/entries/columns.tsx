@@ -5,6 +5,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { formatDecimal2 } from "@/lib/number-format";
 import type { KpiEntryStatus } from "@/queries/entries";
 
 import type { EntryTableRow } from "./map-entry-row";
@@ -147,7 +148,7 @@ export function getEntryColumns(
 				const t = row.original.totalMarks;
 				return (
 					<span className="text-muted-foreground tabular-nums text-sm">
-						{o ?? "—"} / {t ?? "—"}
+						{formatDecimal2(o)} / {formatDecimal2(t)}
 					</span>
 				);
 			},

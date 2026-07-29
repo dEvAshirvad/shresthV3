@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Pencil, Trash2 } from "lucide-react";
+import { KeyRound, Pencil, Trash2 } from "lucide-react";
 
 import { DataTable } from "@/components/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
@@ -22,17 +22,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getApiErrorMessage } from "@/lib/api-error";
-import { useDeleteNodal, useListNodals, type NodalRecord } from "@/queries/nodal";
+import { downloadNodalCredentialsCsv } from "@/lib/nodal-credentials-csv";
+import {
+	useDeleteNodal,
+	useListNodals,
+	useResetNodalPassword,
+	type NodalCredential,
+	type NodalRecord,
+} from "@/queries/nodal";
 import { NodalFormDialog } from "./nodal-form-dialog";
 
 function NodalCandidatesRowActions({
 	candidate,
 	onEdit,
+	onCredentials,
 }: {
 	candidate: NodalRecord;
 	onEdit: () => void;
+	onCredentials?: (creds: NodalCredential[]) => void;
 }) {
 	const deleteNodal = useDeleteNodal();
+	const resetPassword = useResetNodalPassword();
 	const [confirmOpen, setConfirmOpen] = useState(false);
 
 	const handleDelete = async () => {
@@ -45,9 +55,33 @@ function NodalCandidatesRowActions({
 		}
 	};
 
+	const handleReset = async () => {
+		try {
+			const res = await resetPassword.mutateAsync(candidate._id);
+			const creds = res.data.credentials;
+			onCredentials?.([creds]);
+			downloadNodalCredentialsCsv([creds], `nodal-${creds.empId}-password.csv`);
+			toast.success("Password reset — CSV downloaded (shown once)");
+		} catch (e) {
+			toast.error(getApiErrorMessage(e));
+		}
+	};
+
 	return (
 		<>
 			<div className="flex items-center gap-1">
+				{candidate.empId || hasUserId(candidate) ? (
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						className="size-8"
+						aria-label={`Reset password for ${candidate.name}`}
+						disabled={resetPassword.isPending}
+						onClick={() => void handleReset()}>
+						<KeyRound className="size-4" />
+					</Button>
+				) : null}
 				<Button
 					type="button"
 					variant="ghost"
@@ -105,7 +139,11 @@ function hasUserId(n: NodalRecord): boolean {
 	return Boolean(u);
 }
 
-export function NodalCandidatesDataTable() {
+export function NodalCandidatesDataTable({
+	onCredentials,
+}: {
+	onCredentials?: (creds: NodalCredential[]) => void;
+} = {}) {
 	const [searchInput, setSearchInput] = useState("");
 	const [searchDebounced, setSearchDebounced] = useState("");
 	const [createOpen, setCreateOpen] = useState(false);
@@ -142,6 +180,17 @@ export function NodalCandidatesDataTable() {
 				),
 			},
 			{
+				accessorKey: "empId",
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Emp ID" />
+				),
+				cell: ({ row }) => (
+					<span className="font-mono text-sm">
+						{(row.original.empId as string) || "—"}
+					</span>
+				),
+			},
+			{
 				accessorKey: "phone",
 				header: ({ column }) => (
 					<DataTableColumnHeader column={column} title="Phone" />
@@ -163,10 +212,10 @@ export function NodalCandidatesDataTable() {
 			},
 			{
 				id: "linked",
-				header: "User linked",
+				header: "Provisioned",
 				cell: ({ row }) => (
 					<span className="text-muted-foreground text-sm">
-						{hasUserId(row.original) ? "Yes" : "No"}
+						{hasUserId(row.original) && row.original.empId ? "Yes" : "No"}
 					</span>
 				),
 			},
@@ -176,11 +225,12 @@ export function NodalCandidatesDataTable() {
 					<NodalCandidatesRowActions
 						candidate={row.original}
 						onEdit={() => setEditNodal(row.original)}
+						onCredentials={onCredentials}
 					/>
 				),
 			},
 		];
-	}, []);
+	}, [onCredentials]);
 
 	if (isPending) {
 		return (
@@ -212,7 +262,7 @@ export function NodalCandidatesDataTable() {
 		<div className="space-y-3">
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 				<Input
-					placeholder="Search name, email, or phone…"
+					placeholder="Search name, empId, email, or phone…"
 					value={searchInput}
 					onChange={(e) => {
 						setSearchInput(e.target.value);
@@ -248,6 +298,7 @@ export function NodalCandidatesDataTable() {
 				onOpenChange={setCreateOpen}
 				mode="create"
 				initial={null}
+				onCredentials={onCredentials}
 			/>
 			<NodalFormDialog
 				open={editNodal !== null}

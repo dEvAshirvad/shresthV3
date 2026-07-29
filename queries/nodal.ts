@@ -16,6 +16,7 @@ export type NodalRecord = {
 	name: string;
 	phone: string;
 	email?: string | null;
+	empId?: string | null;
 	organizationId?: string;
 	userId?: unknown;
 	memberId?: unknown;
@@ -44,8 +45,24 @@ export type ListNodalsData = {
 
 export type ListNodalsResponse = ApiSuccessEnvelope<ListNodalsData>;
 
+export type NodalCredential = {
+	nodalId?: string;
+	name: string;
+	phone: string;
+	email?: string;
+	empId: string;
+	password: string;
+	whatsapp?: {
+		ok: boolean;
+		skipped?: boolean;
+		message?: string;
+		destination?: string;
+	};
+};
+
 export type NodalSingleData = {
 	nodal: NodalRecord;
+	credentials?: NodalCredential;
 	message: string;
 };
 
@@ -68,11 +85,41 @@ export type NodalImportTemplateFormat = "csv" | "xlsx";
 export type NodalImportData = {
 	insertedCount: number;
 	updatedCount: number;
+	skippedProvisioned?: number;
 	totalProcessed: number;
+	credentials?: NodalCredential[];
+	provisionErrors?: Array<{ phone?: string; message: string }>;
 	message: string;
 };
 
 export type NodalImportResponse = ApiSuccessEnvelope<NodalImportData>;
+
+export type ProvisionNodalCredentialsData = {
+	credentials: NodalCredential[];
+	errors: Array<{ nodalId: string; phone?: string; message: string }>;
+	message: string;
+};
+
+export type ProvisionNodalCredentialsResponse =
+	ApiSuccessEnvelope<ProvisionNodalCredentialsData>;
+
+export type DownloadAllNodalCredentialsData = {
+	credentials: NodalCredential[];
+	errors: Array<{ nodalId: string; phone?: string; message: string }>;
+	total: number;
+	message: string;
+};
+
+export type DownloadAllNodalCredentialsResponse =
+	ApiSuccessEnvelope<DownloadAllNodalCredentialsData>;
+
+export type ResetNodalPasswordData = {
+	credentials: NodalCredential;
+	message: string;
+};
+
+export type ResetNodalPasswordResponse =
+	ApiSuccessEnvelope<ResetNodalPasswordData>;
 
 export type SyncNodalsFromOrgMembersData = {
 	linked: number;
@@ -190,6 +237,32 @@ export async function sendInvitationToRestNodals(): Promise<SendNodalInvitations
 	return data;
 }
 
+export async function provisionNodalCredentials(): Promise<ProvisionNodalCredentialsResponse> {
+	const { data } = await api.post<ProvisionNodalCredentialsResponse>(
+		`${BASE}/provision-credentials`,
+		{},
+	);
+	return data;
+}
+
+export async function downloadAllNodalCredentials(): Promise<DownloadAllNodalCredentialsResponse> {
+	const { data } = await api.post<DownloadAllNodalCredentialsResponse>(
+		`${BASE}/download-all-credentials`,
+		{},
+	);
+	return data;
+}
+
+export async function resetNodalPassword(
+	id: string,
+): Promise<ResetNodalPasswordResponse> {
+	const { data } = await api.post<ResetNodalPasswordResponse>(
+		`${BASE}/${id}/reset-password`,
+		{},
+	);
+	return data;
+}
+
 export async function attachNodalUserIdAndMemberId(
 	email: string,
 	body: AttachNodalUserMemberBody,
@@ -266,6 +339,36 @@ export function useSendInvitationToRestNodals() {
 			queryClient.invalidateQueries({
 				queryKey: organizationKeys.invitations(),
 			});
+		},
+	});
+}
+
+export function useProvisionNodalCredentials() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: provisionNodalCredentials,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: nodalKeys.all });
+		},
+	});
+}
+
+export function useDownloadAllNodalCredentials() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: () => downloadAllNodalCredentials(),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: nodalKeys.all });
+		},
+	});
+}
+
+export function useResetNodalPassword() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: resetNodalPassword,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: nodalKeys.all });
 		},
 	});
 }

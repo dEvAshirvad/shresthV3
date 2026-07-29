@@ -83,6 +83,14 @@ export type SignInEmailResponse = {
 	user: User;
 };
 
+export type SignInUsernameBody = {
+	username: string;
+	password: string;
+	rememberMe?: boolean | null;
+};
+
+export type SignInUsernameResponse = SignInEmailResponse;
+
 export type ResetPasswordBody = {
 	newPassword: string;
 	token?: string | null;
@@ -632,6 +640,16 @@ async function signInEmail(
 	return data;
 }
 
+async function signInUsername(
+	body: SignInUsernameBody,
+): Promise<SignInUsernameResponse> {
+	const { data } = await api.post<SignInUsernameResponse>(
+		"/api/auth/sign-in/username",
+		body,
+	);
+	return data;
+}
+
 async function resetPassword(
 	body: ResetPasswordBody,
 ): Promise<ResetPasswordResponse> {
@@ -1173,8 +1191,23 @@ export function useSignOut() {
 
 	return useMutation({
 		mutationFn: signOut,
+		onMutate: async () => {
+			// Optimistically mark session as signed out to prevent stale auth redirects
+			// while the sign-out request is in flight.
+			await queryClient.cancelQueries({ queryKey: authKeys.getSession() });
+			queryClient.setQueryData<GetSessionResponse>(authKeys.getSession(), {
+				session: null,
+				user: null,
+			});
+		},
 		onSuccess: () => {
-			queryClient.removeQueries({ queryKey: authKeys.all });
+			// Clear all cached queries so post-logout navigation cannot rely on stale
+			// authenticated data from any feature area.
+			queryClient.clear();
+		},
+		onError: () => {
+			// If sign-out fails, refresh session state from the server.
+			void queryClient.invalidateQueries({ queryKey: authKeys.getSession() });
 		},
 	});
 }
@@ -1193,6 +1226,16 @@ export function useSignInEmail() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: signInEmail,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: authKeys.all });
+		},
+	});
+}
+
+export function useSignInUsername() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: signInUsername,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: authKeys.all });
 		},

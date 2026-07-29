@@ -17,6 +17,7 @@ import { getApiErrorMessage } from "@/lib/api-error";
 import {
 	useDownloadNodalImportTemplate,
 	useImportNodals,
+	type NodalCredential,
 	type NodalImportTemplateFormat,
 } from "@/queries/nodal";
 
@@ -37,7 +38,11 @@ const TEMPLATE_FILENAMES: Record<NodalImportTemplateFormat, string> = {
 	xlsx: "nodal-import-template.xlsx",
 };
 
-export function NodalImportDropdown() {
+export function NodalImportDropdown({
+	onCredentials,
+}: {
+	onCredentials?: (creds: NodalCredential[]) => void;
+} = {}) {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const downloadTemplate = useDownloadNodalImportTemplate();
 	const importNodals = useImportNodals();
@@ -67,14 +72,16 @@ export function NodalImportDropdown() {
 			importNodals.mutate(file, {
 				onSuccess: (env) => {
 					const d = env.data;
+					const creds = d.credentials ?? [];
+					onCredentials?.(creds);
 					toast.success(d.message ?? "Import finished", {
-						description: `${d.insertedCount} created, ${d.updatedCount} updated (${d.totalProcessed} rows)`,
+						description: `${d.insertedCount} created, ${d.updatedCount} updated (${d.totalProcessed} rows)${creds.length ? ` · ${creds.length} credentials` : ""}`,
 					});
 				},
 				onError: (err) => toast.error(getApiErrorMessage(err)),
 			});
 		},
-		[importNodals],
+		[importNodals, onCredentials],
 	);
 
 	const busy = downloadTemplate.isPending || importNodals.isPending;

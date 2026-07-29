@@ -64,6 +64,11 @@ export function Navbar() {
 					))}
 				</nav>
 				<div className="md:flex hidden items-center gap-2">
+					<Link
+						href="/login"
+						className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
+						Nodal login
+					</Link>
 					<SocialSigninBtn />
 					<Link
 						href="#"
@@ -75,6 +80,9 @@ export function Navbar() {
 					</Link>
 				</div>
 				<div className="flex items-center gap-2 md:hidden">
+					<Button asChild size="sm" variant="outline">
+						<Link href="/login">Login</Link>
+					</Button>
 					<Button asChild size="sm">
 						<Link href="/signup">Get Started</Link>
 					</Button>

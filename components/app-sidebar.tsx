@@ -6,6 +6,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import {
 	Sidebar,
 	SidebarContent,
+	SidebarFooter,
 	SidebarGroup,
 	SidebarHeader,
 	SidebarMenu,
@@ -13,8 +14,10 @@ import {
 	SidebarMenuItem,
 	SidebarRail,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { getOrgDashboardAccess, type OrgDashboardAccess } from "@/lib/org-role";
-import { useGetActiveOrganizationMember } from "@/queries/auth";
+import { useGetActiveOrganizationMember, useSignOut } from "@/queries/auth";
 import {
 	BarChart3Icon,
 	BuildingIcon,
@@ -22,12 +25,15 @@ import {
 	ClipboardListIcon,
 	FileIcon,
 	LayoutDashboardIcon,
+	LogOutIcon,
 	ShieldIcon,
 	UserIcon,
 	UsersRound,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 type NavItem = {
 	title: string;
@@ -100,7 +106,9 @@ function navItemVisible(access: OrgDashboardAccess, item: NavItem): boolean {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-	const { session } = useAuth();
+	const router = useRouter();
+	const { user, session, refetch } = useAuth();
+	const signOut = useSignOut();
 	const { data: activeMember, isError: memberError } =
 		useGetActiveOrganizationMember({
 			enabled: Boolean(session?.activeOrganizationId),
@@ -116,6 +124,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		() => NAV_MAIN.filter((item) => navItemVisible(access, item)),
 		[access],
 	);
+
+	const handleSignOut = React.useCallback(async () => {
+		try {
+			await signOut.mutateAsync();
+			refetch();
+			toast.success("Signed out");
+			router.replace("/login");
+		} catch (err) {
+			toast.error(getApiErrorMessage(err));
+		}
+	}, [signOut, refetch, router]);
 
 	return (
 		<Sidebar {...props} className="bg-sidebar/50">
@@ -156,6 +175,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 					</SidebarMenu>
 				</SidebarGroup>
 			</SidebarContent>
+			<SidebarFooter className="border-t">
+				<p className="truncate px-2 text-xs text-muted-foreground">
+					{user?.name ?? user?.email ?? "Signed in user"}
+				</p>
+				<Button
+					type="button"
+					variant="ghost"
+					className="w-full justify-start"
+					onClick={() => void handleSignOut()}
+					disabled={signOut.isPending}>
+					<LogOutIcon className="size-4" />
+					{signOut.isPending ? "Signing out…" : "Sign out"}
+				</Button>
+			</SidebarFooter>
 			<SidebarRail />
 		</Sidebar>
 	);

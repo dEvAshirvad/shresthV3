@@ -25,7 +25,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { getApiErrorMessage } from "@/lib/api-error";
-import { useListEmployees } from "@/queries/employee";
+import { useListAllEmployees } from "@/queries/employee";
 import { useUpsertKpiEntryDraft } from "@/queries/entries";
 import { useListKpiPeriods } from "@/queries/periods";
 import { useListTemplates } from "@/queries/templates";
@@ -44,11 +44,7 @@ export function EntryDraftDialog({ open, onOpenChange }: EntryDraftDialogProps) 
 	});
 	const templates = tplRes?.data?.docs ?? [];
 
-	const { data: empRes, isPending: empLoading } = useListEmployees({
-		page: 1,
-		limit: 500,
-	});
-	const employees = empRes?.data?.docs ?? [];
+	const { data: employees = [], isPending: empLoading } = useListAllEmployees();
 
 	const { data: perRes, isPending: perLoading } = useListKpiPeriods({
 		page: 1,

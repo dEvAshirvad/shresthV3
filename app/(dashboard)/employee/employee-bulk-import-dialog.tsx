@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getApiErrorMessage } from "@/lib/api-error";
+import { downloadEmployeeCredentialsCsv } from "@/lib/employee-credentials-csv";
 import { useOrgDepartments } from "@/hooks/use-org-departments";
 import {
 	useDownloadEmployeeImportTemplate,
@@ -97,9 +98,17 @@ export function EmployeeBulkImportDialog({
 				{
 					onSuccess: (envelope) => {
 						const d = envelope.data;
+						const creds = d.credentials ?? [];
 						toast.success(d.message ?? "Import completed", {
-							description: `${d.insertedCount} created, ${d.updatedCount} updated (${d.totalProcessed} rows)`,
+							description: `${d.insertedCount} created, ${d.updatedCount} updated (${d.totalProcessed} rows)${creds.length ? ` · ${creds.length} credentials` : ""}`,
 						});
+						if (creds.length) {
+							downloadEmployeeCredentialsCsv(
+								creds,
+								`employee-credentials-import-${new Date().toISOString().slice(0, 10)}.csv`,
+							);
+							toast.message("Credentials CSV downloaded — save it securely.");
+						}
 						onOpenChange(false);
 					},
 					onError: (err) => toast.error(getApiErrorMessage(err)),
@@ -118,7 +127,8 @@ export function EmployeeBulkImportDialog({
 					<DialogTitle>Bulk import employees</DialogTitle>
 					<DialogDescription>
 						Download a template, fill name and phone (required), then upload. Rows
-						are upserted by phone for the department you select.
+						are upserted by phone for the department you select. New employees get
+						empId + password (CSV download on success).
 					</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-4 py-2">

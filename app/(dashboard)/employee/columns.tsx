@@ -35,6 +35,19 @@ export function getEmployeeColumns(
 			filterFn: "includesString",
 		},
 		{
+			id: "empId",
+			accessorFn: (row) => row.empId ?? "",
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Emp ID" />
+			),
+			cell: ({ row }) => (
+				<span className="font-mono text-xs text-muted-foreground">
+					{row.original.empId ?? "—"}
+				</span>
+			),
+			filterFn: "includesString",
+		},
+		{
 			accessorKey: "phone",
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="Phone" />
@@ -81,6 +94,19 @@ export function getEmployeeColumns(
 				</span>
 			),
 			filterFn: "includesString",
+		},
+		{
+			id: "provisioned",
+			header: "Provisioned",
+			cell: ({ row }) => {
+				const emp = row.original;
+				const yes = Boolean(emp.empId && emp.userId);
+				return (
+					<span className="text-muted-foreground text-sm">
+						{yes ? "Yes" : "No"}
+					</span>
+				);
+			},
 		},
 		{
 			id: "actions",

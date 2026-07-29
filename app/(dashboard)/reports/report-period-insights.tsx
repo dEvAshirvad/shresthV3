@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { PaginationState } from "@tanstack/react-table";
 import {
 	Award,
 	BarChart3,
@@ -16,6 +17,7 @@ import { DataTable } from "@/components/data-table";
 import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDecimal2, formatPercent2 } from "@/lib/number-format";
 import { reportNotReadyMessage } from "@/lib/report-not-ready";
 import { useOrgDepartments } from "@/hooks/use-org-departments";
 import {
@@ -118,6 +120,10 @@ export function ReportPeriodInsights({ periodId }: ReportPeriodInsightsProps) {
 	const [departmentFilter, setDepartmentFilter] = useState("");
 	const [searchQuery, setSearchQuery] = useState("");
 	const [roleQuery, setRoleQuery] = useState("");
+	const [rankingPagination, setRankingPagination] = useState<PaginationState>({
+		pageIndex: 0,
+		pageSize: 50,
+	});
 
 	const { data: listRes } = useListReportRuns();
 	const runs = listRes?.data?.reports ?? [];
@@ -143,8 +149,8 @@ export function ReportPeriodInsights({ periodId }: ReportPeriodInsightsProps) {
 	const rankingQuery = useReportRanking(periodId, rankingScope, {
 		departmentId:
 			rankingScope === "department" ? departmentFilter : undefined,
-		page: 1,
-		limit: 500,
+		page: rankingPagination.pageIndex + 1,
+		limit: rankingPagination.pageSize,
 	});
 
 	const summaryNotReady = reportNotReadyMessage(summaryQuery.error);
@@ -273,9 +279,11 @@ export function ReportPeriodInsights({ periodId }: ReportPeriodInsightsProps) {
 		);
 	}
 
+	const rankingTotalRows = rankingQuery.data?.data?.total ?? filteredRows.length;
+
 	const rankingTitle = departmentFilter
-		? `${(deptNameById.get(departmentFilter) ?? "Department").toUpperCase()} PERFORMANCE RANKINGS (${filteredRows.length})`
-		: `ORGANIZATION PERFORMANCE RANKINGS (${filteredRows.length})`;
+		? `${(deptNameById.get(departmentFilter) ?? "Department").toUpperCase()} PERFORMANCE RANKINGS (${rankingTotalRows})`
+		: `ORGANIZATION PERFORMANCE RANKINGS (${rankingTotalRows})`;
 
 	return (
 		<div className="space-y-6">
@@ -302,11 +310,20 @@ export function ReportPeriodInsights({ periodId }: ReportPeriodInsightsProps) {
 			<ReportPeriodInsightsFilters
 				departments={departments}
 				departmentFilter={departmentFilter}
-				onDepartmentFilterChange={setDepartmentFilter}
+				onDepartmentFilterChange={(value) => {
+					setDepartmentFilter(value);
+					setRankingPagination((prev) => ({ ...prev, pageIndex: 0 }));
+				}}
 				searchQuery={searchQuery}
-				onSearchChange={setSearchQuery}
+				onSearchChange={(value) => {
+					setSearchQuery(value);
+					setRankingPagination((prev) => ({ ...prev, pageIndex: 0 }));
+				}}
 				roleQuery={roleQuery}
-				onRoleChange={setRoleQuery}
+				onRoleChange={(value) => {
+					setRoleQuery(value);
+					setRankingPagination((prev) => ({ ...prev, pageIndex: 0 }));
+				}}
 				periodLabel={periodLabel}
 			/>
 
@@ -379,15 +396,15 @@ export function ReportPeriodInsights({ periodId }: ReportPeriodInsightsProps) {
 										<dd className="text-end tabular-nums">{d.totalEntries}</dd>
 										<dt className="text-muted-foreground">Average score</dt>
 										<dd className="text-end font-semibold text-sky-600 tabular-nums dark:text-sky-400">
-											{d.avgScore.toFixed(2)}
+											{formatDecimal2(d.avgScore)}
 										</dd>
 										<dt className="text-muted-foreground">Max score</dt>
 										<dd className="text-end font-semibold text-emerald-600 tabular-nums dark:text-emerald-400">
-											{d.maxScore.toFixed(2)}
+											{formatDecimal2(d.maxScore)}
 										</dd>
 										<dt className="text-muted-foreground">Min score</dt>
 										<dd className="text-end font-semibold text-amber-600 tabular-nums dark:text-amber-400">
-											{d.minScore.toFixed(2)}
+											{formatDecimal2(d.minScore)}
 										</dd>
 									</dl>
 								</CardContent>
@@ -406,7 +423,7 @@ export function ReportPeriodInsights({ periodId }: ReportPeriodInsightsProps) {
 						<div>
 							<p className="text-muted-foreground text-xs uppercase">Average score</p>
 							<p className="text-lg font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
-								{performance.avgPct.toFixed(2)}%
+								{formatPercent2(performance.avgPct)}
 							</p>
 						</div>
 					</CardContent>
@@ -534,7 +551,7 @@ export function ReportPeriodInsights({ periodId }: ReportPeriodInsightsProps) {
 									</p>
 								</div>
 								<span className="bg-emerald-600/15 text-emerald-800 dark:text-emerald-200 rounded-full px-3 py-1 text-sm font-semibold tabular-nums">
-									{topPerformer.scorePercent.toFixed(1)}%
+									{formatPercent2(topPerformer.scorePercent)}
 								</span>
 							</CardContent>
 						</Card>
@@ -551,7 +568,13 @@ export function ReportPeriodInsights({ periodId }: ReportPeriodInsightsProps) {
 						getRowId={(row) =>
 							`${row.employeeId}-${row.rank}-${row.scope ?? rankingScope}`
 						}
-						defaultPageSize={10}
+						pagination={{
+							pageIndex: rankingPagination.pageIndex,
+							pageSize: rankingPagination.pageSize,
+							pageCount: rankingQuery.data?.data?.totalPages ?? 1,
+							totalRows: rankingQuery.data?.data?.total ?? 0,
+						}}
+						onPaginationChange={setRankingPagination}
 						emptyMessage="No ranking rows match your filters."
 						renderToolbar={(table) => (
 							<div className="flex justify-end">
@@ -578,7 +601,7 @@ export function ReportPeriodInsights({ periodId }: ReportPeriodInsightsProps) {
 									</p>
 								</div>
 								<span className="bg-slate-600/15 text-slate-800 dark:text-slate-200 rounded-full px-3 py-1 text-sm font-semibold tabular-nums">
-									{bottomPerformer.scorePercent.toFixed(1)}%
+									{formatPercent2(bottomPerformer.scorePercent)}
 								</span>
 							</CardContent>
 						</Card>
